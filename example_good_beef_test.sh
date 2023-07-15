@@ -5,62 +5,36 @@
 
 # First, compile Beef.bsv
 source_files=(./beef/Beef.bsv)
-expected_outputs=(
-  ./beef/Beef.bo
-  ./beef/beef.ba
-  ./beef/vpi_wrapper_beef.{c,h}
-)
-BSC \
-  -verilog \
-  $(path_dir_flags ./beef) \
-  ${source_files[@]}
+expected_outputs=(./beef/Beef.bo ./beef/beef.ba ./beef/vpi_wrapper_beef.{c,h})
+BSC -verilog $(path_dir_flags ./beef) ${source_files[@]}
 
 # Next compile the test.
 source_files=(./beef/test/BeefTest.bs)
-implicit_files=(
-  ./beef/Beef.bo
-  ./beef/beef.ba
-)
-expected_outputs=(
-  ./beef/test/BeefTest.bo
-  ./beef/test/mkBeefTest.v
-)
-BSC \
-  -verilog \
-  $(path_dir_flags ./beef/test) \
-  -g mkBeefTest \
-  ${source_files[@]}
+implicit_files=(./beef/Beef.bo ./beef/beef.ba)
+expected_outputs=(./beef/test/BeefTest.bo ./beef/test/mkBeefTest.v)
+BSC -verilog $(path_dir_flags ./beef/test) -g mkBeefTest ${source_files[@]}
 
 # Copy the vpi_wrapper files to beef/test
-cp -v \
-  ./beef/vpi_wrapper_beef.{c,h} \
-  ./beef/test
+cp -v ./beef/vpi_wrapper_beef.{c,h} ./beef/test
 
 # Link the test into an executable.
-source_files=(
-  ./beef/test/mkBeefTest.v
-  ./beef/beef.c
-  ./beef/beef.ba
-)
-implicit_files=(
-  ./beef/test/BeefTest.bo
-  ./beef/test/vpi_wrapper_beef.{c,h}
-)
-expected_outputs=(
-  ./beef/test/BeefTest.exe
-  ./directc_mkBeefTest.so
-)
-extra_outputs=(
-  ./beef/beef.o
-  ./beef/test/vpi_startup_array.{c,o}
-  ./beef/test/vpi_wrapper_beef.o
-)
-BSC \
-  -verilog \
-  $(path_dir_flags ./beef/test) \
-  -o ./beef/test/BeefTest.exe \
-  -e mkBeefTest \
-  ${source_files[@]}
+source_files=(./beef/test/mkBeefTest.v ./beef/beef.c ./beef/beef.ba)
+implicit_files=(./beef/test/BeefTest.bo ./beef/test/vpi_wrapper_beef.{c,h})
+expected_outputs=(./beef/test/BeefTest.exe
+  ./directc_mkBeefTest.so) # !! In the cwd, not with the exe.
+extra_outputs=(./beef/beef.o ./beef/test/vpi_wrapper_beef.o
+  ./beef/test/vpi_startup_array.{c,o})
+BSC -verilog $(path_dir_flags ./beef/test) \
+  -o ./beef/test/BeefTest.exe -e mkBeefTest ${source_files[@]}
 
 # Run the test.
+echo -e "\nFrom the top level directory:"
 ./beef/test/BeefTest.exe
+# ^ succeeds
+
+(
+  echo -e "\nFrom the beef/test directory:"
+  cd ./beef/test
+  ./BeefTest.exe
+)
+# ^ fails because it can't find directc_mkBeefTest.so
