@@ -49,8 +49,8 @@ It has a few variables that need to be set (or left empty) before compiling:
       compilation.  E.g., .bo files from previous compilations, etc..
   - `expected_outputs`
     - List of files that bsc will produce, and which are needed later.  For
-      compilation, this includes .bo files, .ba files, etc.  For linking,
-      this includes the executable, and the things needed at runtime.
+      compilation, this includes .bo files, .ba files, etc.  For linking, this
+      includes the executable, and the things needed at runtime.
   - `extra_outputs`
     - List of files that bsc will produce, but are not needed.  This includes
       things like .o files, and other intermediate files.
@@ -58,11 +58,11 @@ It has a few variables that need to be set (or left empty) before compiling:
 These vars are all reset back to empty after each call.
 
 The `BSC` function mimics the way `bazel` runs `bsc` by creating a temporary
-directory, copying all of the `source_files` and `implicit_files` into it,
-and running `bsc` there. This way, `bsc` cannot access anything but those files.
-It then verifies that only the `expected_outputs` and `extra_outputs` were
-created. Then the `expected_outputs` are copied back to the original dir, and
-the temporary dir is deleted.
+directory, copying all of the `source_files` and `implicit_files` into it, and
+running `bsc` there. This way, `bsc` cannot access anything but those files. It
+then verifies that only the `expected_outputs` and `extra_outputs` were created.
+Then the `expected_outputs` are copied back to the original dir, and the
+temporary dir is deleted.
 
 The `path_dir_flags` function is used to generate the `-p` flag and the various
 `-*dir` flags.  It takes one directory as an argument, which will be used for
@@ -74,34 +74,31 @@ I then have several `example_*.sh` scripts that show how I am using this
 framework.  Each script is a self-contained example that can be run from the top
 level directory.  Each will execute `clean.sh` before running.
 
-# The `-vdir` and `vpi_wrapper_*.{c,h}` compilation issue
+# The `-vdir` and `vpi_wrapper_*.{c,h}` compilation issue (A)
 
 The first problem I ran into is that the `vpi_wrapper_*.{c,h}` files are
-generated in the `cwd`, unless I specify `-vdir`.  The `-vdir`
-defaults to the location of the source file being compiled, but I need to
-specify it explicitly to get the `vpi_wrapper_*.{c,h}` files to go there.
+generated in the `cwd`, unless I specify `-vdir`.  The `-vdir` defaults to the
+location of the source file being compiled, but I need to specify it explicitly
+to get the `vpi_wrapper_*.{c,h}` files to go there.
 
-See `example_bad_no_vdir.sh` for an example of this.  It fails because it is
+See `example_A_bad_no_vdir.sh` for an example of this.  It fails because it is
 expecting the `vpi_wrapper_*.{c,h}` files to be in the `beef` directory, but
 they are in the `cwd` instead.
 
-And the `example_good_with_vdir.sh` shows how I handle this.  (By just passing
+And the `example_A_good_with_vdir.sh` shows how I handle this.  (By just passing
 the `-vdir` flag).
 
-# The `vpi_wrapper_*.{c,h}` linking issue
+# The `vpi_wrapper_*.{c,h}` linking issue (B)
 
-The `example_bad_beef_test.sh` and `example_bad_cafe_test.sh` scripts (which are
-nearly identical) both fail because when linking, they are expecting to find
-`vpi_wrapper_*.{c,h}` files in the same directory where the executable is being
-created.  But they are in the `beef` and `cafe` directories instead.  The
-`example_bad_beef_cafe_test.sh` script fails for the same reason.
+The `example_B_bad_*.sh` scripts fail, because when linking they are expecting
+to find `vpi_wrapper_*.{c,h}` files in the same directory where the executable
+is being created.  But they are in the `beef` and `cafe` directories instead.
 
-The `example_good_beef_test.sh` and `example_good_cafe_test.sh` scripts show how
-I handle this by copying all the `vpi_wrapper_*.{c,h}` files into the directory
-where the executable is being created before linking.  Same with
-`example_good_beef_cafe_test.sh`.
+The `example_B_good_*.sh` scripts show how I handle this by copying all the
+`vpi_wrapper_*.{c,h}` files into the directory where the executable is being
+created before linking.
 
-# The `directc_*.so` runtime issue.
+# The `directc_*.so` runtime issue (C)
 
 When linking with `BDPI`, bsc will generate a `directc_*.so` file that is needed
 at runtime.  This file is generated in the `cwd`, regardless of any `-*dir`
@@ -116,3 +113,5 @@ also generates a `foo_exe.so` file, but it is generated in the same directory as
 the executable, and at runtime that is where it looks for it.  So it seems like
 the `directc_*.so` is just a special case.  None of these examples use `-sim`
 though, so I can't show that here.  Let me know if you want me to add that.
+
+The `example_C_bad_*.sh` scripts illustrate this problem.
