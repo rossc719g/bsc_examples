@@ -1,0 +1,32 @@
+package BeefCafeTest where
+
+import StmtFSM
+
+import Beef
+import Cafe
+
+mkBeefCafeTest :: Module Empty
+mkBeefCafeTest = module
+  beefReg :: Reg (Bit 132) <- mkReg 0
+  cafeReg :: Reg (Bit 132) <- mkReg 0
+
+  mkAutoFSM do
+    s do
+      beefval :: Bit 132 <- beef_c 132
+      beefReg := beefval
+    s do
+      cafeval :: Bit 132 <- cafe_c 132
+      cafeReg := cafeval
+    s $ if beefReg /= 132'hfdeadbeefdeadbeefdeadbeefdeadbeef then do
+          $display (fshow beefReg)
+          $display "Fail"
+          $fatal
+        else noAction
+    s $ if cafeReg /= 132'hdcafef00dcafef00dcafef00dcafef00d then do
+          $display (fshow cafeReg)
+          $display "Fail"
+          $fatal
+        else noAction
+    s $ do
+      $display "Pass"
+      $finish

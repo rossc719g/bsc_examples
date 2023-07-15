@@ -1,0 +1,24 @@
+package CafeTest where
+
+import StmtFSM
+
+import Cafe
+
+mkCafeTest :: Module Empty
+mkCafeTest = module
+  cafeReg :: Reg (Bit 132) <- mkReg 0
+
+  mkAutoFSM do
+    s do
+      -- Is there a way to omit this intermediate variable and just assign to
+      -- cafeReg directly from cafe_c?
+      cafeval :: Bit 132 <- cafe_c 132
+      cafeReg := cafeval
+    s $ if cafeReg /= 132'hdcafef00dcafef00dcafef00dcafef00d then do
+          $display (fshow cafeReg)
+          $display "Fail"
+          $fatal
+        else noAction
+    s $ do
+      $display "Pass"
+      $finish

@@ -1,0 +1,24 @@
+package BeefTest where
+
+import StmtFSM
+
+import Beef
+
+mkBeefTest :: Module Empty
+mkBeefTest = module
+  beefReg :: Reg (Bit 132) <- mkReg 0
+
+  mkAutoFSM do
+    s do
+      -- Is there a way to omit this intermediate variable and just assign to
+      -- beefReg directly from beef_c?
+      beefval :: Bit 132 <- beef_c 132
+      beefReg := beefval
+    s $ if beefReg /= 132'hfdeadbeefdeadbeefdeadbeefdeadbeef then do
+          $display (fshow beefReg)
+          $display "Fail"
+          $fatal
+        else noAction
+    s $ do
+      $display "Pass"
+      $finish
