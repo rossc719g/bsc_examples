@@ -24,15 +24,21 @@ path_dir_flags() {
 
   # Build the path, excluding $1.
   path="%/Libraries"
+  vsearch="%/Verilog" # Do I need this?  Unclear.
   # Get a unique list of all the directories that contain implicit files.
 
   while read d; do
     if [ "$d" != "$1" ]; then
-      path="$path:$d"
+      # If it is a .v file, add it to vsearch, otherwise add it to path.
+      if [[ $d == *.v ]]; then
+        vsearch="$vsearch:$d"
+      else
+        path="$path:$d"
+      fi
     fi
   done < <(for f in "${implicit_files[@]}"; do dirname $f; done | sort -u)
 
-  path_flags="-p $path"
+  path_flags="-p $path -vsearch $vsearch"
   for f in "-bdir" "-simdir" "-vdir" "-info-dir"; do
     path_flags="$path_flags $f $1"
   done

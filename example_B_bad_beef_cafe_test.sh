@@ -23,9 +23,8 @@ expected_outputs=(./test/BeefCafeTest.bo ./test/mkBeefCafeTest.v)
 BSC -verilog $(path_dir_flags ./test) -g mkBeefCafeTest ${source_files[@]}
 
 # Link the test into an executable.
-source_files=(./test/mkBeefCafeTest.v
-  ./beef/beef.c ./beef/beef.ba ./cafe/cafe.c ./cafe/cafe.ba)
-implicit_files=(./test/BeefCafeTest.bo
+source_files=(./beef/beef.c ./beef/beef.ba ./cafe/cafe.c ./cafe/cafe.ba)
+implicit_files=(./test/BeefCafeTest.bo ./test/mkBeefCafeTest.v
   ./beef/vpi_wrapper_beef.{c,h} ./cafe/vpi_wrapper_cafe.{c,h})
 expected_outputs=(./test/BeefCafeTest.exe)
 BSC -verilog $(path_dir_flags ./test) \

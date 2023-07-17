@@ -18,8 +18,9 @@ BSC -verilog $(path_dir_flags ./beef/test) -g mkBeefTest ${source_files[@]}
 cp -v ./beef/vpi_wrapper_beef.{c,h} ./beef/test
 
 # Link the test into an executable.
-source_files=(./beef/test/mkBeefTest.v ./beef/beef.c ./beef/beef.ba)
-implicit_files=(./beef/test/BeefTest.bo ./beef/test/vpi_wrapper_beef.{c,h})
+source_files=(./beef/beef.c ./beef/beef.ba)
+implicit_files=(./beef/test/BeefTest.bo ./beef/test/mkBeefTest.v
+  ./beef/test/vpi_wrapper_beef.{c,h})
 expected_outputs=(./beef/test/BeefTest.exe
   ./directc_mkBeefTest.so) # !! In the cwd, not with the exe.
 extra_outputs=(./beef/beef.o ./beef/test/vpi_wrapper_beef.o
