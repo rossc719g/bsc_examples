@@ -44,10 +44,7 @@ class MuxCtnr c where
   muxCtnrMkM    :: Module y -> Module (c y)  -- Create a container of modules
   muxCtnrFor    :: c y -> (y -> x) -> c x    -- Map over the container
 
-instance MuxCtnr (Vector n) where
-  muxCtnrMkM    = replicateM
-  muxCtnrFor    = flip map
-
+-- Make a mux for a container type c, with inputs of type t, and select type s.
 mkMux :: (MuxCtnr c, Bits t sz, DefaultValue t) =>
   (c t -> s -> t) -> Module (Reg t) -> Module (Mux c s t)
 mkMux muxfn mkOutReg = module
@@ -63,12 +60,27 @@ mkMux muxfn mkOutReg = module
         sel idx = output := muxfn (muxCtnrFor inputs readReg) idx
         out = output
 
+-- A basic Vector based mux.
 type VecMux n i t = Mux (Vector n) i t
 
+instance MuxCtnr (Vector n) where
+  muxCtnrMkM    = replicateM
+  muxCtnrFor    = flip map
+
+-- The mux is really just a "select".
 mkVecMuxSel :: (Bits t sz, DefaultValue t, Bits i (TLog n)) =>
+  Module (Reg t) -> Module (VecMux n i t)
+mkVecMuxSel mkOutReg = mkMux (\v -> select v · pack) mkOutReg
+
+-- Similar to above, but uses a Raw for the mux to prevent the compiler from
+-- ruminating about value being muxed. I.e., if t is a complicated vector type,
+-- then the compiler will try to analyze the contents, and can explode the
+-- compile time.
+mkVecMuxSelRaw :: (Bits t sz, DefaultValue t, Bits i (TLog n)) =>
   Module (Reg (Raw t)) -> Module (VecMux n i t)
-mkVecMuxSel mkOutReg = module
-  _m :: VecMux n i (Raw t) <- mkMux (\v -> select v · pack) mkOutReg
+mkVecMuxSelRaw mkOutReg = module
+  -- Wrap the inputs in Raw, and unwrap the output.
+  _m :: VecMux n i (Raw t) <- mkVecMuxSel mkOutReg
   interface Mux
     inputs = (flip map) _m.inputs $ \i ->
       interface MuxInput

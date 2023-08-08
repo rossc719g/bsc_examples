@@ -1,0 +1,26 @@
+package MyRawMuxThing where
+
+import Connectable
+import Vector
+
+import Mux
+
+type T = Bit 32
+type N = 4
+type I = Bit (TLog N)
+
+interface MyRawMuxThing =
+  writeAt :: T -> I -> Action         {-# always_ready #-}
+  mux     :: MuxSelect I T
+
+mkMyRawMuxThing :: Module MyRawMuxThing
+mkMyRawMuxThing = module
+  vec :: Vector N (Reg T) <- replicateM $ mkReg 0
+  -- The mkDWire allows the mux.out to be always_ready, and not dependent on
+  -- mux.sel being always_enabled.
+  vMux :: VecMux N I T <- mkVecMuxSelRaw $ mkDWire defaultValue
+  vMux.inputs <-> vec
+
+  interface MyRawMuxThing
+    writeAt val idx = (select vec idx) := val
+    mux = vMux.mux
