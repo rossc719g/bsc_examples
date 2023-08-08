@@ -5,7 +5,8 @@ import Vector
 
 import Mux
 
-type T = Bit 32
+type T = Bit 4
+-- type T = Vector 256 (Bit 4)  -- Use this to see why I am trying to use Raw.
 type N = 4
 type I = Bit (TLog N)
 
@@ -15,7 +16,7 @@ interface MyMuxThing =
 
 mkMyMuxThing :: Module MyMuxThing
 mkMyMuxThing = module
-  vec :: Vector N (Reg T) <- replicateM $ mkReg 0
+  vec :: Vector N (Reg T) <- replicateM $ mkReg defaultValue
   -- The mkDWire allows the mux.out to be always_ready, and not dependent on
   -- mux.sel being always_enabled.
   vMux :: VecMux N I T <- mkVecMuxSel $ mkDWire defaultValue
