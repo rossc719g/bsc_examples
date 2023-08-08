@@ -1,4 +1,4 @@
-# bsc_examples
+# bdpi_examples
 
 Some examples for https://github.com/B-Lang-org/bsc/discussions/575
 

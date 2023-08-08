@@ -1,0 +1,87 @@
+package Mux where
+
+import Connectable
+import Vector
+
+import Raw
+import RegExtra
+import VectorExtra
+
+-- A single input to the mux. Will be stored in some container type.
+-- Similar to WriteOnly, but always enabled, and with better names.
+interface MuxInput t =
+  _write :: t -> Action {-# always_ready, always_enabled,
+                            prefix="", arg_names=[muxInVal] #-}
+
+interface MuxSelect s t =
+  sel :: s -> Action {-# always_ready, prefix="", arg_names=[sel] #-}
+  out :: t           {-# always_ready #-}
+
+instance Connectable (MuxInput t) t where
+  mkConnection i v = i._write <-> v
+
+instance Connectable t (MuxInput t) where
+  mkConnection v i = i <-> v
+
+instance Connectable (MuxInput t) (Reg t) where
+  mkConnection i r = i._write <-> r
+
+instance Connectable (Reg t) (MuxInput t) where
+  mkConnection r i = i <-> r
+
+-- c is the container type
+-- s is the select type to identify one of the ts in the container
+-- t is the type of the inputs and outputs
+interface Mux c s t =
+  inputs :: c (MuxInput t)
+  mux    :: MuxSelect s t
+
+-- This class is for containers that can be muxed. This allows the mux to be
+-- constructed with "good" names for the inputs. For example, if the container
+-- is a vector, then the inputs will be numbered. If the container is a struct,
+-- then the inputs will have the names of the struct fields, etc..
+-- In order to be able to mux using a container type, we need to be able to
+-- create a container of Modules, and map over the container.
+class MuxCtnr c where
+  muxCtnrMkM    :: Module y -> Module (c y)  -- Create a container of modules
+  muxCtnrFor    :: c y -> (y -> x) -> c x    -- Map over the container
+
+instance MuxCtnr (Vector n) where
+  muxCtnrMkM    = replicateM
+  muxCtnrFor    = for
+
+mkMux :: (MuxCtnr c, Bits t sz, DefaultValue t) =>
+  (c t -> s -> t) -> Module (Reg t) -> Module (Mux c s t)
+mkMux muxfn mkOutReg = module
+  inputs :: c (Wire t) <- muxCtnrMkM mkBypassWire
+  output :: Reg t      <- mkOutReg
+
+  interface Mux
+    inputs = muxCtnrFor inputs $ \w ->
+      interface MuxInput
+        _write = w._write
+    mux =
+      interface MuxSelect
+        sel idx = output := muxfn (muxCtnrFor inputs readReg) idx
+        out = output
+
+type VecMux n i t = Mux (Vector n) i t
+
+mkVecMuxSel :: (Bits t sz, DefaultValue t, Bits i (TLog n)) =>
+  Module (Reg (Raw t)) -> Module (VecMux n i t)
+mkVecMuxSel mkOutReg = module
+  _m :: VecMux n i (Raw t) <- mkMux safeSelect mkOutReg
+  interface Mux
+    inputs = for _m.inputs $ \i ->
+      interface MuxInput
+        _write = i._write · uncook
+    mux =
+      interface MuxSelect
+        sel = _m.mux.sel
+        out = cook _m.mux.out
+
+mkVecMuxFoldOr :: (Bitwise t, Bits t sz, DefaultValue t, Add 1 nm1 n,
+                   Bits i (TLog n), Eq i, Literal i) =>
+  Module (Reg t) -> Module (VecMux n i t)
+mkVecMuxFoldOr = mkMux $ \i s -> fold (|) $ for2 i genVec $ \val id ->
+  if id == s then val else defaultValue

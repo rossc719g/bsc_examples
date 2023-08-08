@@ -1,0 +1,43 @@
+package Raw where
+
+data Raw t = Raw (Bit (SizeOf t))
+
+class Cookable t where
+  cook   :: Raw t -> t
+  uncook :: t -> Raw t
+
+-- Not sure if I need this. The Bits instance below should be enough?
+-- I assume, the pack and unpack for (Bit t) are no-ops.
+
+-- instance Cookable (Bit sz) where
+--   cook   (Raw x) = x
+--   uncook x       = Raw x
+
+instance (Bits t sz) => Cookable t where
+  cook   (Raw x) = unpack x
+  uncook x       = Raw (pack x)
+
+instance (Bits t sz) => Bits (Raw t) sz where
+  pack   (Raw x) = x
+  unpack x       = Raw x
+
+instance (FShow t, Cookable t) => FShow (Raw t) where
+  fshow x = $format "Raw(" (fshow (cook x)) ")"
+
+instance (Bits t tsz) => Literal (Raw t) where
+  fromInteger 0 = Raw 0
+  fromInteger _ = error "Raw.fromInteger: non-zero literal"
+  inLiteralRange _ 0 = True
+  inLiteralRange _ _ = False
+
+instance (Bits t tsz) => Bitwise (Raw t) where
+  (|)    (Raw x) (Raw y) = Raw (x | y)
+  (&)    (Raw x) (Raw y) = Raw (x & y)
+  (^)    (Raw x) (Raw y) = Raw (x ^ y)
+  (^~)   (Raw x) (Raw y) = Raw (x ^~ y)
+  (~^)   (Raw x) (Raw y) = Raw (x ~^ y)
+  invert (Raw x)         = Raw (invert x)
+  (<<)   (Raw x) y       = Raw (x << y)
+  (>>)   (Raw x) y       = Raw (x >> y)
+  msb    (Raw x)         = msb x
+  lsb    (Raw x)         = lsb x
