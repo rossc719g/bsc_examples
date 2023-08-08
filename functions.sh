@@ -39,7 +39,8 @@ path_dir_flags() {
   done < <(for f in "${implicit_files[@]}"; do dirname $f; done | sort -u)
 
   path_flags="-p $path -vsearch $vsearch"
-  for f in "-bdir" "-simdir" "-vdir" "-info-dir"; do
+  # Omitting "-info-dir" for now.
+  for f in "-bdir" "-simdir" "-vdir"; do
     path_flags="$path_flags $f $1"
   done
   echo $path_flags
@@ -100,4 +101,25 @@ BSC() {
   implicit_files=()
   expected_outputs=()
   extra_outputs=()
+}
+
+# First arg is package to compile (without .bs extension).  All other args are
+# libraries that are needed for compilation. For example:
+#   BSC_LIB ./foo/Bar ./baz/Qux ./quux/Quuz
+# is equivalent to calling:
+#   source_files=(./code/Raw.bs)
+#   expected_outputs=(./code/Raw.bo)
+#   implicit_files=(./baz/Qux.bo ./quux/Quuz.bo)
+#   BSC $(path_dir_flags ./code) ./code/Raw.bs
+BSC_LIB() {
+  source_files=("$1.bs")
+  expected_outputs=("$1.bo")
+  shift
+  for f in "$@"; do
+    implicit_files+=("$f.bo")
+  done
+  # echo source_files: "${source_files[@]}"
+  # echo expected_outputs: "${expected_outputs[@]}"
+  # echo implicit_files: "${implicit_files[@]}"
+  BSC $(path_dir_flags $(dirname ${source_files[@]})) ${source_files[@]}
 }

@@ -4,8 +4,6 @@ import Connectable
 import Vector
 
 import Raw
-import RegExtra
-import VectorExtra
 
 -- A single input to the mux. Will be stored in some container type.
 -- Similar to WriteOnly, but always enabled, and with better names.
@@ -48,7 +46,7 @@ class MuxCtnr c where
 
 instance MuxCtnr (Vector n) where
   muxCtnrMkM    = replicateM
-  muxCtnrFor    = for
+  muxCtnrFor    = flip map
 
 mkMux :: (MuxCtnr c, Bits t sz, DefaultValue t) =>
   (c t -> s -> t) -> Module (Reg t) -> Module (Mux c s t)
@@ -70,18 +68,12 @@ type VecMux n i t = Mux (Vector n) i t
 mkVecMuxSel :: (Bits t sz, DefaultValue t, Bits i (TLog n)) =>
   Module (Reg (Raw t)) -> Module (VecMux n i t)
 mkVecMuxSel mkOutReg = module
-  _m :: VecMux n i (Raw t) <- mkMux safeSelect mkOutReg
+  _m :: VecMux n i (Raw t) <- mkMux (\v -> select v · pack) mkOutReg
   interface Mux
-    inputs = for _m.inputs $ \i ->
+    inputs = (flip map) _m.inputs $ \i ->
       interface MuxInput
         _write = i._write · uncook
     mux =
       interface MuxSelect
         sel = _m.mux.sel
         out = cook _m.mux.out
-
-mkVecMuxFoldOr :: (Bitwise t, Bits t sz, DefaultValue t, Add 1 nm1 n,
-                   Bits i (TLog n), Eq i, Literal i) =>
-  Module (Reg t) -> Module (VecMux n i t)
-mkVecMuxFoldOr = mkMux $ \i s -> fold (|) $ for2 i genVec $ \val id ->
-  if id == s then val else defaultValue
