@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
-./clean.sh
-. ./functions.sh
+../clean.sh
+. ../functions.sh
 
 # First, compile Cafe.bsv
 source_files=(./cafe/Cafe.bsv)

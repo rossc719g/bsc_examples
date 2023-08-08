@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
-./clean.sh
-. ./functions.sh
+../clean.sh
+. ../functions.sh
 
 # Compile Beef.bsv
 source_files=(./beef/Beef.bsv)

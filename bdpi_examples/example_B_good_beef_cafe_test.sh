@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
-./clean.sh
-. ./functions.sh
+../clean.sh
+. ../functions.sh
 
 # This example shows that the linking step succeeds if the vpi_wrapper files are
 # copied to the directory where the executable is being generated.

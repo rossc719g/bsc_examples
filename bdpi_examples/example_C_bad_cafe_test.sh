@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
-./clean.sh
-. ./functions.sh
+../clean.sh
+. ../functions.sh
 
 # A working example to compile the CafeTest.
 
