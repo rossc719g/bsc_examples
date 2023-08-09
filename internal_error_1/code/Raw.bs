@@ -7,7 +7,7 @@ instance (Bits t sz) => Bits (Raw t) sz where
   unpack x       = Raw x
 
 instance (Bits t tsz) => DefaultValue (Raw t) where
-  defaultValue = Raw defaultValue
+  defaultValue = Raw 0
 
 cook :: (Bits t tsz) => Raw t -> t
 cook (Raw x) = unpack x
