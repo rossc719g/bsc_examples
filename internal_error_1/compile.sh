@@ -22,6 +22,13 @@ implicit_files=(./code/Raw.bo ./code/Mux.bo)
 expected_outputs+=(./code/mkMyMuxThing.v)
 BSC $path_flags -verilog -g mkMyMuxThing ./code/MyMuxThing.bs
 
+# Also working without errors ---------------------------------------------
+source_files=(./code/OptionsMux.bs)
+expected_outputs=(./code/OptionsMux.bo)
+implicit_files=(./code/Raw.bo ./code/Mux.bo)
+expected_outputs+=(./code/mkOptionsMuxVec256Uint4.v)
+BSC $path_flags -verilog -g mkOptionsMuxVec256Uint4 ./code/OptionsMux.bs
+
 # Causes an internal error ------------------------------------------------
 source_files=(./code/MyRawMuxThing.bs)
 expected_outputs=(./code/MyRawMuxThing.bo)

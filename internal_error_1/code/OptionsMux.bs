@@ -1,0 +1,79 @@
+package OptionsMux where
+
+import Vector
+
+import Mux
+
+type NumBar = 2
+type BarId = Bit (TLog NumBar)
+
+data Selection = Foo
+               | Bar BarId
+               | Baz
+  deriving (Eq, FShow)
+
+-- This manually created Bits instance does reduces the number of bits in the
+-- packed representation, but that is not the reason it is here. It also
+-- simplifies the generated code for the muxes.
+instance Bits Selection (TLog (TAdd 2 NumBar)) where
+  pack i = case i of
+    Foo   -> 0
+    Bar 0 -> 1
+    Bar 1 -> 2
+    Baz   -> 3
+  unpack b = case b of
+    0 -> Foo
+    1 -> Bar 0
+    2 -> Bar 1
+    3 -> Baz
+
+interface Options t =
+  foo :: t
+  bar :: Vector NumBar t
+  baz :: t
+ deriving (Eq, Bits, FShow, DefaultValue)
+
+options :: t -> (Vector NumBar t) -> t -> Options t
+options foo bar baz =
+  Options {
+    foo = foo;
+    bar = bar;
+    baz = baz;
+  }
+
+optionsFor :: Options a -> (a -> b) -> Options b
+optionsFor x f = options (f x.foo) (map f x.bar) (f x.baz)
+
+optionsForM :: (Monad m) => Options a -> (a -> m b) -> m (Options b)
+optionsForM x f = do
+  foo :: b <- f x.foo
+  bar :: Vector NumBar b <- mapM f x.bar
+  baz :: b <- f x.baz
+  return $ options foo bar baz
+
+optionsReplicateM :: (Monad m) => m t -> m (Options t)
+optionsReplicateM mk = optionsForM _ (const mk)
+
+optionsMuxCase :: (DefaultValue t) => Options t -> Selection -> t
+optionsMuxCase inputs idx = case idx of
+  Foo -> inputs.foo
+  -- Expanding the bar case so that it does not generate a second mux.
+  -- I wish I didn't have to do this.
+  Bar 0 -> inputs.bar !! 0
+  Bar 1 -> inputs.bar !! 1
+  Baz -> inputs.baz
+  _ -> defaultValue
+
+type OptionsMux t = Mux Options Selection t
+
+instance MuxCtnr Options where
+  muxCtnrMkM    = optionsReplicateM
+  muxCtnrFor    = optionsFor
+
+mkOptionsMux :: (Bits t sz, DefaultValue t) =>
+  (Options t -> Selection -> t) -> Module (OptionsMux t)
+mkOptionsMux muxfn = mkMux muxfn $ mkReg defaultValue
+
+-- This module gets synthesized
+mkOptionsMuxVec256Uint4 :: Module (OptionsMux (Vector 256 (UInt 4)))
+mkOptionsMuxVec256Uint4 = mkOptionsMux optionsMuxCase
