@@ -1,0 +1,10 @@
+package Trivial where
+
+mkTrivial :: Module Empty
+mkTrivial = module
+
+  rules
+    {-# ASSERT no implicit conditions #-}  {-# ASSERT fire when enabled #-}
+    "Hello": when True ==> do
+      $display "Hello"
+      $finish
