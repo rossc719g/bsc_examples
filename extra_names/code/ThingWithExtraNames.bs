@@ -1,0 +1,12 @@
+package ThingWithExtraNames where
+
+interface ThingWithExtraNames =
+  -- The verilog ends up using the names "one" and "two" for the arguments, and
+  -- ignores the "three" name. It feels dangerous to quietly ignore it.
+  twoArgMethod :: Bool -> Bool -> Action {-# arg_names=[one, two, three] #-}
+
+mkThingWithExtraNames :: Module ThingWithExtraNames
+mkThingWithExtraNames = module
+  r :: Reg Bool <- mkReg False
+  interface ThingWithExtraNames
+    twoArgMethod a b = if a then r := b else noAction

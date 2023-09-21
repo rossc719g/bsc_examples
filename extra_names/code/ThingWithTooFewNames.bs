@@ -1,0 +1,13 @@
+package ThingWithTooFewNames where
+
+interface ThingWithTooFewNames =
+  -- The compiler dies with:
+  --   Prelude.!!: index too large%
+  -- So, it at least generates an error, but not a good one.
+  twoArgMethod :: Bool -> Bool -> Action {-# arg_names=[one] #-}
+
+mkThingWithTooFewNames :: Module ThingWithTooFewNames
+mkThingWithTooFewNames = module
+  r :: Reg Bool <- mkReg False
+  interface ThingWithTooFewNames
+    twoArgMethod a b = if a then r := b else noAction
