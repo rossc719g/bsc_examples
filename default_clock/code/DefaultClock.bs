@@ -1,0 +1,6 @@
+package DefaultClock where
+
+mkDefaultClock :: Clock -> Module (Reg Bool)
+mkDefaultClock default_clock = module
+  r :: Reg Bool <- primModuleClock default_clock mkRegU
+  return r

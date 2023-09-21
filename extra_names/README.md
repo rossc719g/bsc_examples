@@ -1,4 +1,4 @@
-# extra names
+# extra_names
 
 This example demonstrates something that should be an error but isn't.
 Specifically, the `arg_names` pragma for interface methods does not check that
