@@ -1,0 +1,21 @@
+package MakeNegative where
+
+import qualified FloatingPoint
+
+-- This one generates an error in the FloatingPoint package:
+-- Error: "FloatingPoint.bsv", line 66, column 16: (T0140)
+--   Cannot access fields in this expression since its type
+--   `FloatingPoint.FloatingPoint' has not been imported. Perhaps an import
+--   statement is missing, e.g., `import FloatingPoint::*;'
+makeNegative :: FloatingPoint.Half -> FloatingPoint.Half
+makeNegative x = x {
+  FloatingPoint.sign = True
+}
+
+-- This one works fine:
+makeNegative_ :: FloatingPoint.Half -> FloatingPoint.Half
+makeNegative_ x = FloatingPoint.Half {
+  FloatingPoint.sign = True;
+  FloatingPoint.exp = x.FloatingPoint.exp;
+  FloatingPoint.sfd = x.FloatingPoint.sfd;
+}
