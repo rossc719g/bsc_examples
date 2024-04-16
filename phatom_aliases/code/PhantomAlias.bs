@@ -1,0 +1,34 @@
+package PhantomAlias where
+
+import Vector
+
+-- Split a vector into many vectors of the same length.
+splitN :: (Div len k n, Mul k n len, Add n n__ len) =>
+  Vector len a -> Vector k (Vector n a)
+splitN v = let getChunk :: Integer -> Vector n a
+               getChunk i = takeAt ((valueOf n) * i) v
+           in map getChunk genVector
+
+type (PhantomVec :: # -> # -> * -> *) n k t = Vector n t
+type PhantomVecReg n k t = Reg (PhantomVec n k t)
+
+-- interface (PhantomVecReg :: # -> # -> * -> *) n k t =
+--   _read  :: Vector n t            {-# always_ready #-}
+--   _write :: Vector n t -> Action  {-# always_ready, always_enabled #-}
+
+mkPhantomVecReg :: (IsModule m c, Bits t t_sz,  -- Add k k__ n,
+                    Div n k w, Div n w k, Mul w k n) => m (PhantomVecReg n k t)
+mkPhantomVecReg = module
+
+  inVec :: Vector n (Wire t)
+  inVec <- replicateM mkBypassWire
+
+  let splitVec :: Vector w (Vector k t)
+      splitVec = splitN $ readVReg inVec
+
+  interface PhantomVecReg
+    _read    = concat $ reverse splitVec
+    _write i = zipWithM_ writeReg inVec i
+
+mkPhantomVecRegDut :: (IsModule m c) => m (PhantomVecReg 6 2 (UInt 8))
+mkPhantomVecRegDut = mkPhantomVecReg
