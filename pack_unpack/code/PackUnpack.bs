@@ -1,0 +1,63 @@
+package PackUnpack where
+
+import Vector
+
+-- A type that represents a set of bools. It allows one, none, or all of the
+-- bools to be set, and can be converted to a vector of bools.
+data OneNoneAll n = One (UInt (TLog n)) | None | All
+  deriving (Eq)
+
+-- Special case for n = 1, since there is no difference between One and All in
+-- that case, and wa single bit encoding can be used.
+instance Bits (OneNoneAll 1) 1 where
+  pack x = pack $ x /= None
+  unpack x = if x == 1'b1 then One 0 else None  -- Could also be All, if needed.
+
+-- Generic case that uses one bit to distinguish between One and None/All, and
+-- then the remaining bits to encode the value of One. (or distinguish between
+-- None and All)  This could be `(TLog (TAdd n 2))` which is 1 bit smaller when
+-- `(2^x)-2 >= n > (2^(x-1))`, but the current intent is that this is only used
+-- when n is a power of 2, so the simpler encoding is used.
+instance Bits (OneNoneAll n) (TAdd (TLog n) 1) where
+  pack x = case x of
+    One y -> 1'b0 ++ (pack y)
+    None  -> 1'b1 ++ 0
+    All   -> 1'b1 ++ 1
+  unpack x =
+    let (high, low) = (split x) :: (Bit 1, Bit (TLog n))
+        lowest = lsb low
+    in if high == 1'b0 then One (unpack low)
+       else if lowest == 0 then None
+       else All
+
+-- Example use of the OneNoneAll type. Not actually used in the module.
+oneNoneAllMask :: (OneNoneAll n) -> Vector n Bool
+oneNoneAllMask x = genWith $ \i -> x == All || x == One (fromInteger i)
+
+
+-- OneNoneAll demonstrates the extra logic being generated via the implicit pack
+-- and unpack that occur when reading from and writing to the registers & ports.
+-- The UInt demonstrates the ideal generated logic.
+
+-- type T = OneNoneAll 8
+type T = UInt 4
+
+interface PackUnpack =
+  _write :: T -> Action  {-# always_ready, always_enabled #-}
+  _read  :: T            {-# always_ready #-}
+
+mkPackUnpack :: Module PackUnpack
+mkPackUnpack = module
+  r1 :: Reg T <- mkRegU
+  r2 :: Reg T <- mkRegU
+  r3 :: Reg T <- mkRegU
+
+  rules
+    {-# ASSERT no implicit conditions #-}  {-# ASSERT fire when enabled #-}
+    "Copy": when True ==> do
+      r2 := r1
+      r3 := r2
+
+  interface PackUnpack
+    _write = r1._write
+    _read  = r3._read
