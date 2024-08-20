@@ -2,6 +2,10 @@ package PackUnpack where
 
 import Vector
 
+--------------------------------------------------------------------------------
+-- OneNoneAll type
+--------------------------------------------------------------------------------
+
 -- A type that represents a set of bools. It allows one, none, or all of the
 -- bools to be set, and can be converted to a vector of bools.
 data OneNoneAll n = One (UInt (TLog n)) | None | All
@@ -34,30 +38,55 @@ instance Bits (OneNoneAll n) (TAdd (TLog n) 1) where
 oneNoneAllMask :: (OneNoneAll n) -> Vector n Bool
 oneNoneAllMask x = genWith $ \i -> x == All || x == One (fromInteger i)
 
+--------------------------------------------------------------------------------
+-- Raw type
+--------------------------------------------------------------------------------
 
--- OneNoneAll demonstrates the extra logic being generated via the implicit pack
--- and unpack that occur when reading from and writing to the registers & ports.
--- The UInt demonstrates the ideal generated logic.
+data RawT sz = Raw (Bit sz)
+type Raw t = RawT (SizeOf t)
 
--- type T = OneNoneAll 8
-type T = UInt 4
+instance Bits (RawT sz) sz where
+  pack   (Raw x) = x
+  unpack x       = Raw x
+
+cook :: (Bits t tsz) => Raw t -> t
+cook (Raw x) = unpack x
+
+uncook :: (Bits t tsz) => t -> Raw t
+uncook x = Raw (pack x)
+
+--------------------------------------------------------------------------------
+-- Example module
+--------------------------------------------------------------------------------
+
+type T = OneNoneAll 8
+type R = Raw T
 
 interface PackUnpack =
-  _write :: T -> Action  {-# always_ready, always_enabled #-}
-  _read  :: T            {-# always_ready #-}
+  write    :: T -> Action {-# always_ready, always_enabled #-}
+  read     :: T           {-# always_ready #-}
+  writeRaw :: R -> Action {-# always_ready, always_enabled #-}
+  readRaw  :: R           {-# always_ready #-}
 
 mkPackUnpack :: Module PackUnpack
 mkPackUnpack = module
-  r1 :: Reg T <- mkRegU
-  r2 :: Reg T <- mkRegU
-  r3 :: Reg T <- mkRegU
+  r1   :: Reg T <- mkRegU
+  r2   :: Reg T <- mkRegU
+  r3   :: Reg T <- mkRegU
+  raw1 :: Reg R <- mkRegU
+  raw2 :: Reg R <- mkRegU
+  raw3 :: Reg R <- mkRegU
 
   rules
     {-# ASSERT no implicit conditions #-}  {-# ASSERT fire when enabled #-}
     "Copy": when True ==> do
-      r2 := r1
-      r3 := r2
+      r2   := r1
+      r3   := r2
+      raw2 := raw1
+      raw3 := raw2
 
   interface PackUnpack
-    _write = r1._write
-    _read  = r3._read
+    write    = r1._write
+    read     = r3._read
+    writeRaw = raw1._write
+    readRaw  = raw3._read
