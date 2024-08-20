@@ -1,4 +1,4 @@
-# make_negative
+# pack_unpack
 
 This example demonstrates "extra" logic that is inserted when copying from one
 register to another when the datatype stored in the register has a custom Bits
