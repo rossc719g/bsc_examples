@@ -1,0 +1,71 @@
+package MissingCaseArm where
+
+data ThreeOneTwo = Three | One | Two
+-- data ThreeOneTwo = One | Two | Three
+  deriving (Bits, Eq)
+
+interface MissingCaseArm =
+  testCase :: ThreeOneTwo -> ActionValue (UInt 2)
+
+--------------------------------------------------------------------------------
+-- 1) Match w/o a case statement. Generates no warning.
+mkMissingCaseArm1 :: Module MissingCaseArm
+mkMissingCaseArm1 = module
+  interface MissingCaseArm
+    testCase One = return 1
+    testCase Two = return 2
+    -- Missing arm for Three. Generated verilog will give 2'b0.
+
+-- Try to warn manually. Generates a warning even though the arm is not missing.
+mkMissingCaseArm1Warn :: Module MissingCaseArm
+mkMissingCaseArm1Warn = module
+  interface MissingCaseArm
+    testCase One = return 1
+    testCase Two = return 2
+    testCase Three = return 3
+    -- No missing arm.
+    testCase _ = warning "Missing arm!" $ return _  -- Should be unreachable
+
+
+--------------------------------------------------------------------------------
+-- 2) Match w/ case statement in value context. Generates no warning.
+mkMissingCaseArm2 :: Module MissingCaseArm
+mkMissingCaseArm2 = module
+  interface MissingCaseArm
+    testCase x = return $ case x of
+      One -> 1
+      Two -> 2
+      -- Missing arm for Three. Generated verilog will give 2'b0.
+
+-- Try to warn manually. Generates a warning even though the arm is not missing.
+mkMissingCaseArm2Warn :: Module MissingCaseArm
+mkMissingCaseArm2Warn = module
+  interface MissingCaseArm
+    testCase x = return $ case x of
+      One -> 1
+      Two -> 2
+      Three -> 3
+      -- No missing arm.
+      _ -> warning "Missing arm!" _  -- Should be unreachable
+
+
+--------------------------------------------------------------------------------
+-- 3) Match w/ case statement in action context. Generates no warning.
+mkMissingCaseArm3 :: Module MissingCaseArm
+mkMissingCaseArm3 = module
+  interface MissingCaseArm
+    testCase x = case x of
+      One -> return 1
+      Two -> return 2
+      -- Missing arm for Three. Generated verilog will give 2'b0.
+
+-- Try to warn manually. Generates a warning even though the arm is not missing.
+mkMissingCaseArm3Warn :: Module MissingCaseArm
+mkMissingCaseArm3Warn = module
+  interface MissingCaseArm
+    testCase x = case x of
+      One -> return 1
+      Two -> return 2
+      Three -> return 3
+      -- No missing arm.
+      _ -> warning "Missing arm!" $ return _  -- Should be unreachable
