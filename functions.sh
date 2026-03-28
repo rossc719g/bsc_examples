@@ -9,6 +9,9 @@ global_flags=(
   # -Xc++ -Wno-dangling-else
 )
 
+# Set BSC to override the compiler found in PATH.
+# Set TIMEOUT to limit compiler runtime in seconds.
+
 # Before calling these functions, set these lists:
 source_files=()     # List of explicitly named files that bsc will compile.
 implicit_files=()   # List of files that bsc is implicitly expecting to find.
@@ -70,10 +73,25 @@ BSC() {
   )
 
   # Run bsc.
-  command="bsc ${global_flags[@]} $@"
+  local bsc_binary="${BSC:-bsc}"
+  local command=("$bsc_binary" "${global_flags[@]}" "$@")
   echo ""
-  echo $command
-  eval $command
+  printf '%q ' "${command[@]}"
+  echo ""
+  local bsc_exit_code=0
+  if [[ -n "${TIMEOUT:-}" ]]; then
+    if timeout "${TIMEOUT}s" "${command[@]}"; then
+      bsc_exit_code=0
+    else
+      bsc_exit_code=$?
+    fi
+  else
+    if "${command[@]}"; then
+      bsc_exit_code=0
+    else
+      bsc_exit_code=$?
+    fi
+  fi
   echo ""
 
   # Get a list of all the files that exist after running bsc.
@@ -95,7 +113,7 @@ BSC() {
     echo "Resulting files do not match expected files."
     return 1
   fi
-  return 0
+  return $bsc_exit_code
   # Reset the lists.
   source_files=()
   implicit_files=()

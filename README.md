@@ -1,7 +1,7 @@
 # bsc_examples
 
-Various bluespec examples.
-Each subdir has its own README.md file that describes its contents:
+Various bluespec examples. Each subdir has its own README.md file that describes
+its contents:
 
 - [bdpi_examples](bdpi_examples/README.md)
 - [default_clock](default_clock/README.md)
@@ -12,3 +12,8 @@ Each subdir has its own README.md file that describes its contents:
 - [pack_unpack](pack_unpack/README.md)
 - [phantom_aliases](phantom_aliases/README.md)
 - [runtime_flake](runtime_flake/README.md)
+- [vec_go_boom](vec_go_boom/README.md)
+
+Some examples are safe to run directly, but `vec_go_boom` is intentionally
+guarded with a timeout because affected compilers can consume very large amounts
+of memory.
